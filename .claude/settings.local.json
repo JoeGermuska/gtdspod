@@ -8,7 +8,11 @@
       "Bash(gh repo create:*)",
       "Bash(gh repo view:*)",
       "Bash(git push:*)",
-      "Bash(gh workflow:*)"
+      "Bash(gh workflow:*)",
+      "Bash(gh run list:*)",
+      "Bash(gh api:*)",
+      "Bash(git pull:*)",
+      "Bash(python3:*)"
     ],
     "deny": [],
     "ask": []

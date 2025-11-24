@@ -24,78 +24,77 @@ def scrape_wfmu_page():
     soup = BeautifulSoup(response.content, 'html.parser')
     episodes = []
 
-    # Look for playlist entries in table rows
-    for row in soup.find_all('tr'):
+    # Look for playlist entries in list items
+    for li in soup.find_all('li'):
         try:
-            cells = row.find_all('td')
-            if len(cells) < 3:
+            li_text = li.get_text()
+
+            # Look for date pattern
+            date_match = re.search(r'(\w+ \d+, \d{4}):', li_text)
+            if not date_match:
                 continue
 
-            # Check if this looks like a playlist row
-            date_cell = cells[0]
-            title_cell = None
-            mp3_cell = None
+            date_text = date_match.group(1)
 
-            # Find cells with links
-            for cell in cells:
-                if cell.find('a'):
-                    link = cell.find('a')
-                    href = link.get('href', '')
-                    if 'playlist' in href:
-                        title_cell = cell
-                    elif '.mp3' in href or 'archive' in href:
-                        mp3_cell = cell
-
-            if not title_cell:
+            # Extract title (text between date and first |)
+            text_after_date = li_text.split(date_text + ':')
+            if len(text_after_date) < 2:
                 continue
 
-            # Extract date
-            date_text = date_cell.get_text(strip=True)
-            if not re.match(r'\d+/\d+/\d+', date_text):
-                continue
+            title_part = text_after_date[1].split('|')[0].strip()
 
-            # Extract title and playlist URL
-            title_link = title_cell.find('a')
-            title = title_link.get_text(strip=True)
-            playlist_url = title_link.get('href')
-            if playlist_url and not playlist_url.startswith('http'):
-                playlist_url = f"https://wfmu.org{playlist_url}"
+            # Extract playlist URL
+            playlist_link = li.find('a', href=re.compile(r'/playlists/shows/'))
+            playlist_url = None
+            if playlist_link:
+                playlist_url = playlist_link.get('href')
+                if playlist_url and not playlist_url.startswith('http'):
+                    playlist_url = f"https://wfmu.org{playlist_url}"
 
-            # Extract MP3 URL
+            # Look for MP3 links in the text
             mp3_url = None
-            if mp3_cell:
-                mp3_link = mp3_cell.find('a')
-                if mp3_link:
-                    mp3_url = mp3_link.get('href')
+            for link in li.find_all('a'):
+                href = link.get('href', '')
+                if '.mp3' in href or 'archive' in href:
+                    mp3_url = href
                     if mp3_url and not mp3_url.startswith('http'):
                         mp3_url = f"https://wfmu.org{mp3_url}"
+                    break
 
-            episode = {
-                'date': date_text,
-                'title': title,
-                'playlist_url': playlist_url,
-                'mp3_url': mp3_url
-            }
-            episodes.append(episode)
+            if playlist_url:  # Only add if we have a playlist link
+                episode = {
+                    'date': date_text,
+                    'title': title_part,
+                    'playlist_url': playlist_url,
+                    'mp3_url': mp3_url
+                }
+                episodes.append(episode)
 
         except Exception as e:
-            print(f"Error parsing row: {e}")
+            print(f"Error parsing list item: {e}")
             continue
 
     return episodes
 
 def parse_date(date_str):
-    """Parse date string in MM/DD/YY or MM/DD/YYYY format"""
+    """Parse date string in 'Month DD, YYYY' format"""
     try:
-        if '/' in date_str:
-            parts = date_str.split('/')
-            if len(parts) == 3:
-                month, day, year = parts
-                if len(year) == 2:
-                    year = f"20{year}"
-                return datetime(int(year), int(month), int(day), 9, 0)  # 9 AM show time
+        # Handle "November 21, 2025" format
+        parsed_date = datetime.strptime(date_str, '%B %d, %Y')
+        # Set to 9 AM (show time)
+        return parsed_date.replace(hour=9, minute=0, second=0)
     except:
-        pass
+        try:
+            # Fallback for MM/DD/YY format
+            if '/' in date_str:
+                parts = date_str.split('/')
+                if len(parts) == 3:
+                    month, day, year = parts
+                    if len(year) == 2:
+                        year = f"20{year}"
+                    return datetime(int(year), int(month), int(day), 9, 0)
+        except:
+            pass
     return datetime.now()
 
 def generate_rss_feed(episodes):
