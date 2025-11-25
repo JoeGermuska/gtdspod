@@ -144,8 +144,6 @@ def generate_rss_feed(episodes):
         description = f"Give The Drummer Some from {episode['date']}"
         if episode['title']:
             description += f" - {episode['title']}"
-        if episode['playlist_url']:
-            description += f"\n\nView playlist: {episode['playlist_url']}"
 
         ET.SubElement(item, 'description').text = description
         ET.SubElement(item, 'link').text = episode['playlist_url'] or 'https://wfmu.org/playlists/ds'
