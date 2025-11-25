@@ -10,6 +10,20 @@ import xml.etree.ElementTree as ET
 from datetime import datetime
 import re
 
+def generate_mp3_url(date_text):
+    """Generate direct MP3 URL from date string"""
+    try:
+        # Parse the date
+        parsed_date = datetime.strptime(date_text, '%B %d, %Y')
+        # Format as YYYYMMDD
+        date_code = parsed_date.strftime('%Y%m%d')
+        # Build the MP3 URL following the pattern
+        mp3_url = f"https://mp3archives.wfmu.org/archive/kdb/mp3jump2010.mp3/0:7:1/0/DS/ds-{date_code}s.mp3"
+        return mp3_url
+    except Exception as e:
+        print(f"Error generating MP3 URL for date '{date_text}': {e}")
+        return None
+
 def scrape_wfmu_page():
     """Scrape the WFMU playlist page for episode data"""
     url = "https://wfmu.org/playlists/ds"
@@ -51,15 +65,8 @@ def scrape_wfmu_page():
                 if playlist_url and not playlist_url.startswith('http'):
                     playlist_url = f"https://wfmu.org{playlist_url}"
 
-            # Look for MP3 links in the text
-            mp3_url = None
-            for link in li.find_all('a'):
-                href = link.get('href', '')
-                if '.mp3' in href or 'archive' in href:
-                    mp3_url = href
-                    if mp3_url and not mp3_url.startswith('http'):
-                        mp3_url = f"https://wfmu.org{mp3_url}"
-                    break
+            # Generate MP3 URL from date
+            mp3_url = generate_mp3_url(date_text)
 
             if playlist_url:  # Only add if we have a playlist link
                 episode = {

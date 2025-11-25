@@ -12,7 +12,8 @@
       "Bash(gh run list:*)",
       "Bash(gh api:*)",
       "Bash(git pull:*)",
-      "Bash(python3:*)"
+      "Bash(python3:*)",
+      "Bash(curl:*)"
     ],
     "deny": [],
     "ask": []
